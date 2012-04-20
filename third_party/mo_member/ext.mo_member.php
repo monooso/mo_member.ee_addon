@@ -105,9 +105,9 @@ class Mo_member_ext {
     // All Mo' Member globals have the prefix 'mo_member:'.
     $prefix = strtolower($this->_ext_model->get_package_name()) .':';
 
-    // Retrieve the member data.
     try
     {
+      // Retrieve the member data.
       $member_data = $this->_ext_model->get_member_data($member_id, $prefix);
     }
     catch (Exception $e)

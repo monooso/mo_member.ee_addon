@@ -43,7 +43,7 @@ class Test_mo_member_model extends Testee_unit_test_case {
   }
 
 
-  public function test__get_member_data__retrieves_member_data_from_database_and_returns_associative_array()
+  public function test__get_member_data__retrieves_member_data_from_database_cached_it_and_returns_associative_array()
   {
     $member_id  = 123;
     $prefix     = 'prefix:';
@@ -52,8 +52,8 @@ class Test_mo_member_model extends Testee_unit_test_case {
     $db_member_data   = $this->_get_mock('db_query');
 
     $db_member_fields_rows = array(
-      array('m_field_id' => 'm_field_id_10', 'm_field_name' => 'first_name'),
-      array('m_field_id' => 'm_field_id_20', 'm_field_name' => 'last_name')
+      array('m_field_id' => '10', 'm_field_name' => 'first_name'),
+      array('m_field_id' => '20', 'm_field_name' => 'last_name')
     );
 
     $db_member_data_row = array(
@@ -103,9 +103,7 @@ class Test_mo_member_model extends Testee_unit_test_case {
     $this->EE->db->expectCallCount('get', 2);
 
     // Retrieve the custom member fields.
-    $this->EE->db->expectAt(0, 'select',
-      array('CONCAT("m_field_id_", m_field_id) AS m_field_id, m_field_name'));
-
+    $this->EE->db->expectAt(0, 'select', array('m_field_id, m_field_name'));
     $this->EE->db->expectAt(0, 'get', array('member_fields'));
 
     $this->EE->db->returnsByReferenceAt(0, 'get', $db_member_fields);
@@ -135,7 +133,10 @@ class Test_mo_member_model extends Testee_unit_test_case {
       $expected_result[$prefix .$key] = $val;
     }
 
-    // Run the tests.
+    // Run the tests. We run everything twice, to confirm the caching works.
+    $this->assertIdentical($expected_result,
+      $this->_subject->get_member_data($member_id, $prefix));
+
     $this->assertIdentical($expected_result,
       $this->_subject->get_member_data($member_id, $prefix));
   }

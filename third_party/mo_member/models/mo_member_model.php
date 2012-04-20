@@ -102,65 +102,79 @@ class Mo_member_model extends CI_Model {
       throw new Exception($message);
     }
 
-    // Retrieve the custom member fields.
-    $db_member_fields = $this->EE->db
-      ->select('CONCAT("m_field_id_", m_field_id) AS m_field_id, m_field_name')
-      ->get('member_fields');
+    // Have we cached the data?
+    $cache =& $this->_get_package_cache();
 
-    $select_fields = array(
-      'members.avatar_filename',
-      'members.avatar_height',
-      'members.avatar_width',
-      'members.bday_d',
-      'members.bday_m',
-      'members.bday_y',
-      'members.bio',
-      'members.email',
-      'members.group_id',
-      'members.interests',
-      'members.location',
-      'members.member_id',
-      'members.occupation',
-      'members.screen_name',
-      'members.url',
-      'members.username'
-    );
-
-    foreach ($db_member_fields->result_array() AS $db_row)
+    if ( ! isset($cache[$member_id]))
     {
-      $select_fields[] = 'member_data.' .$db_row['m_field_id']
-        .' AS ' .$db_row['m_field_name'];
+      // Retrieve the custom member fields.
+      $db_member_fields = $this->EE->db
+        ->select('m_field_id, m_field_name')
+        ->get('member_fields');
+
+      $select_fields = array(
+        'members.avatar_filename',
+        'members.avatar_height',
+        'members.avatar_width',
+        'members.bday_d',
+        'members.bday_m',
+        'members.bday_y',
+        'members.bio',
+        'members.email',
+        'members.group_id',
+        'members.interests',
+        'members.location',
+        'members.member_id',
+        'members.occupation',
+        'members.screen_name',
+        'members.url',
+        'members.username'
+      );
+
+      foreach ($db_member_fields->result_array() AS $db_row)
+      {
+        $select_fields[] = 'member_data.m_field_id_' .$db_row['m_field_id']
+          .' AS ' .$db_row['m_field_name'];
+      }
+
+      // Retrieve the member data.
+      $db_member_data = $this->EE->db
+        ->select(implode(', ', $select_fields))
+        ->from('members')
+        ->join('member_data', 'member_data.member_id = members.member_id',
+            'inner')
+        ->where('members.member_id', $member_id)
+        ->limit(1)
+        ->get();
+
+      // Did we find the member?
+      if ($db_member_data->num_rows() !== 1)
+      {
+        $message = sprintf($this->EE->lang->line('exception_unknown_member'),
+          strval($member_id), __METHOD__);
+
+        throw new Exception($message);
+      }
+
+      // Cache the member data.
+      $cache[$member_id] = $db_member_data->row_array();
     }
 
-    // Retrieve the member data.
-    $db_member_data = $this->EE->db
-      ->select(implode(', ', $select_fields))
-      ->from('members')
-      ->join('member_data', 'member_data.member_id = members.member_id',
-          'inner')
-      ->where('members.member_id', $member_id)
-      ->limit(1)
-      ->get();
-
-    // Did we find the member?
-    if ($db_member_data->num_rows() !== 1)
-    {
-      $message = sprintf($this->EE->lang->line('exception_unknown_member'),
-        strval($member_id), __METHOD__);
-
-      throw new Exception($message);
-    }
+    /**
+     * If we've got this far, we have the member data safely cached in 
+     * $cache[$member_id].
+     */
 
     // If the prefix is empty, our job is easy.
     if ($prefix == '')
     {
-      return $db_member_data->row_array();
+      return $cache[$member_id];
     }
 
     // Construct the return data with the prefix.
     $return_data = array();
 
-    foreach ($db_member_data->row_array() AS $key => $val)
+    foreach ($cache[$member_id] AS $key => $val)
     {
       $return_data[$prefix .$key] = $val;
     }
