@@ -79,13 +79,93 @@ class Mo_member_model extends CI_Model {
    * Returns an associative array of data for the specified member.
    *
    * @access  public
-   * @param   int|string  $member_id    The member ID.
-   * @param   string      $data_prefix  Optional prefix for member data keys.
+   * @param   int|string  $member_id  The member ID.
+   * @param   string      $prefix     Optional prefix for member data keys.
    * @return  array
    */
-  public function get_member_data($member_id, $data_prefix = '')
+  public function get_member_data($member_id, $prefix = '')
   {
-    
+    // Check for idiocy.
+    if ( ! valid_int($member_id, 1))
+    {
+      $message = sprintf($this->EE->lang->line('exception_invalid_member_id'),
+        strval($member_id), __METHOD__);
+
+      throw new Exception($message);
+    }
+
+    if ( ! is_string($prefix))
+    {
+      $message = sprintf($this->EE->lang->line('exception_invalid_prefix'),
+        __METHOD__);
+
+      throw new Exception($message);
+    }
+
+    // Retrieve the custom member fields.
+    $db_member_fields = $this->EE->db
+      ->select('CONCAT("m_field_id_", m_field_id) AS m_field_id, m_field_name')
+      ->get('member_fields');
+
+    $select_fields = array(
+      'members.avatar_filename',
+      'members.avatar_height',
+      'members.avatar_width',
+      'members.bday_d',
+      'members.bday_m',
+      'members.bday_y',
+      'members.bio',
+      'members.email',
+      'members.group_id',
+      'members.interests',
+      'members.location',
+      'members.member_id',
+      'members.occupation',
+      'members.screen_name',
+      'members.url',
+      'members.username'
+    );
+
+    foreach ($db_member_fields->result_array() AS $db_row)
+    {
+      $select_fields[] = 'member_data.' .$db_row['m_field_id']
+        .' AS ' .$db_row['m_field_name'];
+    }
+
+    // Retrieve the member data.
+    $db_member_data = $this->EE->db
+      ->select(implode(', ', $select_fields))
+      ->from('members')
+      ->join('member_data', 'member_data.member_id = members.member_id',
+          'inner')
+      ->where('members.member_id', $member_id)
+      ->limit(1)
+      ->get();
+
+    // Did we find the member?
+    if ($db_member_data->num_rows() !== 1)
+    {
+      $message = sprintf($this->EE->lang->line('exception_unknown_member'),
+        strval($member_id), __METHOD__);
+
+      throw new Exception($message);
+    }
+
+    // If the prefix is empty, our job is easy.
+    if ($prefix == '')
+    {
+      return $db_member_data->row_array();
+    }
+
+    // Construct the return data with the prefix.
+    $return_data = array();
+
+    foreach ($db_member_data->row_array() AS $key => $val)
+    {
+      $return_data[$prefix .$key] = $val;
+    }
+
+    return $return_data;
   }
 
 
