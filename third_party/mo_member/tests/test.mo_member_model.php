@@ -1,0 +1,129 @@
+<?php if ( ! defined('BASEPATH')) exit('Invalid file request');
+
+/**
+ * Mo&#039; Member model tests.
+ *
+ * @author          Stephen Lewis (http://github.com/experience/)
+ * @copyright       Experience Internet
+ * @package         Mo_member
+ */
+
+require_once PATH_THIRD .'mo_member/models/mo_member_model.php';
+
+class Test_mo_member_model extends Testee_unit_test_case {
+
+  private $_namespace;
+  private $_package_name;
+  private $_package_title;
+  private $_package_version;
+  private $_subject;
+
+
+  /* --------------------------------------------------------------
+   * PUBLIC METHODS
+   * ------------------------------------------------------------ */
+
+  /**
+   * Constructor.
+   *
+   * @access  public
+   * @return  void
+   */
+  public function setUp()
+  {
+    parent::setUp();
+
+    $this->_namespace       = 'com.google';
+    $this->_package_name    = 'Example_package';
+    $this->_package_title   = 'Example Package';
+    $this->_package_version = '1.0.0';
+
+    $this->_subject = new Mo_member_model($this->_package_name,
+      $this->_package_title, $this->_package_version, $this->_namespace);
+  }
+
+
+  public function test__get_package_name__returns_correct_package_name_converted_to_lowercase()
+  {
+    $this->assertIdentical(strtolower($this->_package_name),
+      $this->_subject->get_package_name());
+  }
+
+
+  public function test__get_package_theme_url__pre_240_works()
+  {
+    if (defined('URL_THIRD_THEMES'))
+    {
+      $this->pass();
+      return;
+    }
+
+    $package    = strtolower($this->_package_name);
+    $theme_url  = 'http://example.com/themes/';
+    $full_url   = $theme_url .'third_party/' .$package .'/';
+
+    $this->EE->config->expectOnce('slash_item', array('theme_folder_url'));
+    $this->EE->config->setReturnValue('slash_item', $theme_url);
+
+    $this->assertIdentical($full_url, $this->_subject->get_package_theme_url());
+  }
+
+
+  public function test__get_package_title__returns_correct_package_title()
+  {
+    $this->assertIdentical($this->_package_title,
+      $this->_subject->get_package_title());
+  }
+
+
+  public function test__get_package_version__returns_correct_package_version()
+  {
+    $this->assertIdentical($this->_package_version,
+      $this->_subject->get_package_version());
+  }
+
+
+  public function test__get_site_id__returns_site_id_as_integer()
+  {
+    $site_id = '100';
+
+    $this->EE->config->expectOnce('item', array('site_id'));
+    $this->EE->config->setReturnValue('item', $site_id);
+
+    $this->assertIdentical((int) $site_id, $this->_subject->get_site_id());
+  }
+
+
+  public function test__update_array_from_input__ignores_unknown_keys_and_updates_known_keys_and_preserves_unaltered_keys()
+  {
+    $base_array = array(
+      'first_name'  => 'John',
+      'last_name'   => 'Doe',
+      'gender'      => 'Male',
+      'occupation'  => 'Unknown'
+    );
+
+    $update_array = array(
+      'dob'         => '1941-05-24',
+      'first_name'  => 'Bob',
+      'last_name'   => 'Dylan',
+      'occupation'  => 'Writer'
+    );
+
+    $expected_result = array(
+      'first_name'  => 'Bob',
+      'last_name'   => 'Dylan',
+      'gender'      => 'Male',
+      'occupation'  => 'Writer'
+    );
+
+    $this->assertIdentical($expected_result,
+      $this->_subject->update_array_from_input($base_array, $update_array));
+  }
+
+
+}
+
+
+/* End of file      : test.mo_member_model.php */
+/* File location    : third_party/mo_member/tests/test.mo_member_model.php */
