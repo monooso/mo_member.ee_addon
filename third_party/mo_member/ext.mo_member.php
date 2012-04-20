@@ -95,9 +95,30 @@ class Mo_member_ext {
       $row = $last_call;
     }
 
-    // Retrieve the member ID.
+    // Retrieve and validate the member ID.
+    $member_id = $this->EE->session->userdata('member_id');
+    if ( ! valid_int($member_id, 1))
+    {
+      return $row;
+    }
+
+    // All Mo' Member globals have the prefix 'mo_member:'.
+    $prefix = strtolower($this->_ext_model->get_package_name()) .':';
+
     // Retrieve the member data.
+    try
+    {
+      $member_data = $this->_ext_model->get_member_data($member_id, $prefix);
+    }
+    catch (Exception $e)
+    {
+      $this->_ext_model->log_message($e->getMessage(), 3);
+      return $row;
+    }
+
     // Add the member data to the global variables.
+    $this->EE->config->_global_vars = array_merge($member_data,
+      $this->EE->config->_global_vars);
 
     // Play nicely with others.
     return $row;

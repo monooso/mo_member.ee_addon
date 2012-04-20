@@ -74,6 +74,60 @@ class Test_mo_member_ext extends Testee_unit_test_case {
   }
 
 
+  public function test__on_template_fetch_template__retrieves_the_member_data_and_adds_it_to_the_global_variables()
+  {
+    $member_data  = array('jack' => 'white', 'bob' => 'dylan');
+    $member_id    = 123;
+    $global_vars  = array('member_id' => $member_id, 'color' => 'purple');
+
+    // Assign the global variables to the config object.
+    $this->EE->config->_global_vars = $global_vars;
+
+    $this->EE->session->expectOnce('userdata', array('member_id'));
+    $this->EE->session->returns('userdata', $member_id, array('member_id'));
+
+    $this->_ext_model->expectOnce('get_member_data', array($member_id, '*'));
+    $this->_ext_model->returns('get_member_data', $member_data);
+
+    // Run the method.
+    $this->_subject->on_template_fetch_template(array());
+
+    // Check that the global variables have been updated.
+    $expected_result = array_merge($member_data, $global_vars);
+    $this->assertIdentical($expected_result, $this->EE->config->_global_vars);
+  }
+
+
+  public function test__on_template_fetch_template__fails_if_no_session_member_id()
+  {
+    $this->EE->session->expectOnce('userdata', array('member_id'));
+    $this->EE->session->returns('userdata', FALSE);
+
+    $this->_ext_model->expectNever('get_member_data');
+
+    $this->_subject->on_template_fetch_template(array());
+  }
+
+
+  public function test__on_template_fetch_template__handles_model_exception()
+  {
+    $member_id  = 123;
+    $message    = 'Oh noes!';
+
+    $this->EE->session->expectOnce('userdata', array('member_id'));
+    $this->EE->session->returns('userdata', $member_id);
+
+    // Throw the exception.
+    $this->_ext_model->expectOnce('get_member_data');
+    $this->_ext_model->throwOn('get_member_data', new Exception($message));
+
+    // Log the error.
+    $this->_ext_model->expectOnce('log_message', array($message, 3));
+
+    $this->_subject->on_template_fetch_template(array());
+  }
+
+
   public function test__update_extension__calls_model_update_method_with_correct_arguments_and_honors_return_value()
   {
     $installed  = '1.2.3';

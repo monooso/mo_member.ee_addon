@@ -9,6 +9,7 @@
  */
 
 require_once dirname(__FILE__) .'/../config.php';
+require_once dirname(__FILE__) .'/../helpers/EI_number_helper.php';
 
 class Mo_member_model extends CI_Model {
 
@@ -71,6 +72,20 @@ class Mo_member_model extends CI_Model {
       $this->EE->session->cache[$this->_namespace]
         [$this->_package_name] = array();
     }
+  }
+
+
+  /**
+   * Returns an associative array of data for the specified member.
+   *
+   * @access  public
+   * @param   int|string  $member_id    The member ID.
+   * @param   string      $data_prefix  Optional prefix for member data keys.
+   * @return  array
+   */
+  public function get_member_data($member_id, $data_prefix = '')
+  {
+    
   }
 
 
